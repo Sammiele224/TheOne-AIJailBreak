@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@theme {
+:root {
   --color-cyber-bg: #0a0a0f;
   --color-cyber-panel: #13131c;
   --color-cyber-border: #262637;
