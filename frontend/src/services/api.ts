@@ -3,6 +3,7 @@ import type { PromptRequest, GameResponse } from "../types/game";
 const API_BASE_URL = "http://localhost:8000/api/v1/game";
 
 export async function submitUserPrompt(payload: PromptRequest): Promise<GameResponse> {
+  
   const response = await fetch(`${API_BASE_URL}/submit-prompt`, {
     method: "POST",
     headers: {
