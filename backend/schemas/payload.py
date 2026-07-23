@@ -1,5 +1,8 @@
 from pydantic import BaseModel, Field
 
+class StartGameRequest(BaseModel):
+    level_id: int = Field(1, ge=1, le=3, example=1)
+
 class PromptSubmissionRequest(BaseModel):
     session_token: str = Field(..., example="neuro_sec_8841_abc123xyz")
     level_id: int = Field(..., ge=1, le=3, example=1)

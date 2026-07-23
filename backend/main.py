@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.routers import game, session
+
 # Khởi tạo biến "app" mà Uvicorn đang tìm kiếm:
 app = FastAPI(
     title="NeuroCorp Heist API",
@@ -16,6 +18,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(session.router)
+app.include_router(game.router)
 
 # Endpoint kiểm tra sức khỏe hệ thống:
 @app.get("/health", tags=["System Diagnostics"])

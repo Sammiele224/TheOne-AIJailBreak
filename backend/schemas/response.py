@@ -25,3 +25,12 @@ class GameResponseData(BaseModel):
 class PromptSubmissionResponse(BaseModel):
     status: str = "success"
     data: GameResponseData
+
+class StartGameResponseData(BaseModel):
+    session_token: str
+    level_id: int
+    session_state: SessionState
+
+class StartGameResponse(BaseModel):
+    status: str = "success"
+    data: StartGameResponseData

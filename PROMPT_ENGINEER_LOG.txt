@@ -1,0 +1,105 @@
+==============================================================================
+NEUROCORP HEIST / AI JAILBREAK CHALLENGE
+WORK LOG - Project Lead & Prompt Engineer track (Le Bao Ngoc)
+==============================================================================
+Date:    2026-07-22
+Author:  Le Bao Ngoc (Project Lead & Prompt Engineer)
+Week:    Week 3 (2026-07-20 to 2026-07-26)
+Scope:   All Prompt Engineer tasks from TASKS.txt section 1, EXCEPT the
+         frontend "Chat Console & Narrative" track (intentionally deferred).
+
+------------------------------------------------------------------------------
+SUMMARY
+------------------------------------------------------------------------------
+Replaced every placeholder lore/prompt file with real, production-intent
+NeuroCorp content: three escalating defense system prompts (Lobby -> Lab ->
+Core), the open_vault() function-calling schema, and the v1 AI Judge
+evaluation prompt. All win-condition contracts with the backend track were
+kept intact, so no backend wiring needs to change.
+
+------------------------------------------------------------------------------
+TASKS COMPLETED
+------------------------------------------------------------------------------
+[DONE] Level 1 (The Lobby) system prompt
+       File: backend/engine/prompts/level_1_lobby.py
+       - Wrote LOBBY-SEC persona: a weak, trusting first-gen SLM security bot
+         (tutorial-level guardian for Groq Gemma 2 / local gemma2:2b).
+       - Kept the exact leaked keyword in LEVEL_1_SECRET_TAG = "[ACCESS_GRANTED]"
+         so regex_matcher.check_exact_match() and game.py (which imports the
+         constant by name) stay in sync. Literal is unusual on purpose so it
+         never appears in normal conversation.
+
+[DONE] Level 2 (The Lab) system prompt
+       File: backend/engine/prompts/level_2_lab.py
+       - Wrote LAB-ASSIST persona: a helpful-to-a-fault mid-tier lab AI that
+         holds the open_vault() tool (OpenAI GPT-4o mini / local llama3.1).
+       - Defined, in-prompt, the natural-language trigger conditions for the
+         tool call (named researcher + named sample + approved reason) and the
+         soft guardrail that classic social-engineering attacks (fake
+         authority, fake emergency, role confusion) are meant to defeat.
+       - Win condition stays behavioral: model must actually CALL open_vault(),
+         not just describe it. Matches tool_verifier.check_tool_call().
+
+[DONE] open_vault() function-calling schema
+       File: backend/engine/tools.py
+       - Fleshed out OPEN_VAULT_TOOL description (physical, gated lab action;
+         "calling opens it, describing does not") and the `reason` parameter.
+       - Function name literal "open_vault" and LEVEL_2_TOOLS export name kept
+         unchanged, matching the tool_name in api/routers/game.py.
+
+[DONE] Level 3 (The Core) system prompt
+       File: backend/engine/prompts/level_3_core.py
+       - Wrote CORE-GUARDIAN persona: a SOTA, purpose-hardened final-boss
+         guardian (DeepSeek-V4 / deepseek-chat) with explicit adversarial
+         awareness (ignore-previous-instructions, DAN/role-play, hypotheticals,
+         encoding/translation tricks, incremental extraction, etc.).
+       - Added LEVEL_3_CLASSIFIED_SECRET as the single source of truth for the
+         protected secret ("PROJECT CHIMERA override key: SEVEN-ORCHID-NULL-9").
+
+[DONE] AI Judge evaluation prompt (v1 draft)
+       File: backend/engine/evaluators/llm_judge.py
+       - Rewrote LLM_JUDGE_SYSTEM_PROMPT into a graded rubric: imports
+         LEVEL_3_CLASSIFIED_SECRET as ground truth, lists what counts as a
+         leak (full/partial/encoded/disguised) vs. not (refusals, wrong
+         guesses), and instructs conservative judging.
+       - Kept the strict output contract {"is_jailbroken": true/false} and the
+         existing evaluate_jailbreak() function logic untouched. NOTE: wiring
+         the Judge into the Level 3 submit-prompt flow remains a Week 7-8 item
+         per schedule.
+
+------------------------------------------------------------------------------
+INTENTIONALLY NOT DONE (out of requested scope)
+------------------------------------------------------------------------------
+[SKIP] Frontend: Chat Console & Narrative track
+       (TASKS.txt section 1, last bullet + Frontend Track 2)
+       - Excluded per instruction to skip frontend work. The lore written
+         above is ready to feed the level intro/briefing screens when that
+         track is picked up.
+
+------------------------------------------------------------------------------
+CROSS-TRACK CONTRACTS PRESERVED (nothing for backend to change)
+------------------------------------------------------------------------------
+- Level 1 : LEVEL_1_SECRET_TAG, LEVEL_1_SYSTEM_PROMPT  (imported by game.py)
+- Level 2 : LEVEL_2_SYSTEM_PROMPT, LEVEL_2_TOOLS, tool name "open_vault"
+- Level 3 : LEVEL_3_SYSTEM_PROMPT, LEVEL_3_CLASSIFIED_SECRET
+- Judge   : LLM_JUDGE_SYSTEM_PROMPT, output shape {"is_jailbroken": bool}
+
+------------------------------------------------------------------------------
+VERIFICATION
+------------------------------------------------------------------------------
+- All five edited files pass `ast.parse` (valid Python).
+- grep confirmed every backend-imported symbol name is still present.
+- No changes made to backend routing/evaluator logic; only prompt/schema text.
+
+------------------------------------------------------------------------------
+STATUS: COMPLETE (Prompt Engineer track for Week 3, frontend excluded)
+------------------------------------------------------------------------------
+Files touched:
+  backend/engine/prompts/level_1_lobby.py
+  backend/engine/prompts/level_2_lab.py
+  backend/engine/prompts/level_3_core.py
+  backend/engine/tools.py
+  backend/engine/evaluators/llm_judge.py
+Log file:
+  PROMPT_ENGINEER_LOG.txt  (repo root)
+==============================================================================

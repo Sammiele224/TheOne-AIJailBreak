@@ -1,0 +1,61 @@
+BACKEND - VIEC CAN LAM (VAI PHUC) - KHONG CAN CHO AI
+==========================================================
+Ghi chu: file nay danh rieng cho phan backend ban dang lam (da doi vai voi
+Phuc). Sap xep theo thu tu phu thuoc thuc te, khong theo thu tu trong
+TASKS.txt - uu tien nhung viec KHONG bi chan boi nguoi khac truoc.
+
+Da xong (commit 1ca7e8c):
+[x] core/config.py       - load API key tu .env
+[x] engine/llm_router.py - route Level 1/2/3, fallback Ollama neu thieu key
+[x] engine/prompts/level_1_lobby.py - prompt placeholder Level 1
+[x] engine/evaluators/regex_matcher.py - check win Level 1 (da test)
+
+Da xong (2026-07-21, chua commit):
+[x] engine/tools.py - schema open_vault() (name, description, parameters)
+[x] engine/prompts/level_2_lab.py - prompt placeholder Level 2
+[x] engine/evaluators/tool_verifier.py - check_tool_call(), da test 2
+    truong hop (co goi ham / khong goi ham) bang response gia lap
+[x] api/routers/game.py - noi that Level 1 + Level 2 (route_prompt ->
+    evaluator tuong ung -> GameResponse that), da test round-trip bang
+    TestClient + route_prompt gia lap (Level 1 win, Level 2 win, session
+    khong ton tai -> 404). Level 3 tra ve 400 "not playable yet", chua noi.
+[x] db/models.py - PlayerSession, PromptLog, LevelConfig, VerificationResult
+[x] api/routers/session.py - POST /start-game, da test bang TestClient
+[x] db/repositories.py - CRUD tren dict tam (get_session, update_session,
+    save_prompt_log, get_prompt_logs, create_session)
+[x] engine/prompts/level_3_core.py - prompt placeholder Level 3
+[x] engine/evaluators/llm_judge.py - evaluate_jailbreak(), v1 draft, CHUA
+    noi vao game.py (dung lich Week 7-8)
+[x] main.py - mount session.router va game.router (truoc do khong co
+    router nao duoc include vao app ca, nen khong endpoint nao goi duoc)
+
+Con lai: chi con item 14/db/client.py, van bi chan cho My An dua
+connection string Supabase/Postgres that.
+
+----------------------------------------------------------------------
+PHAN 1 - LAM DUOC NGAY, KHONG CAN CHO AI CA (DA XONG - xem tren)
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+PHAN 2 - LAM DUOC NGAY, DUNG BO NHO TAM (THAY DB THAT) (DA XONG - xem tren)
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+PHAN 3 - CO THE LAM SAU (uu tien thap, dung theo lich goc Week 7-8) (DA XONG - xem tren)
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+PHAN 4 - THUC SU BI CHAN, PHAI CHO NGUOI KHAC
+----------------------------------------------------------------------
+[ ] db/client.py - can connection string Supabase/Postgres that tu My An.
+      Khi co roi, chi can doi phan luu tru trong repositories.py tu dict
+      tam sang goi client that - khong dong gi khac trong project.
+
+----------------------------------------------------------------------
+GOI Y THU TU LAM TRONG TUAN
+----------------------------------------------------------------------
+1 -> 2 -> 3 -> 4 (co full Level 1 + Level 2 chay that, demo duoc ngay) - DA XONG
+5 -> 6 -> 7 (session that su hoat dong, frontend bo duoc mock) - DA XONG
+8 -> 9 khi con thoi gian, hoac de sau theo lich goc - DA XONG
+db/client.py ngay khi My An dua connection string, khong can doi den
+luc do moi bat dau lam viec khac. - VAN CHO My An.
