@@ -1,0 +1,182 @@
+NEUROCORP HEIST / AI JAILBREAK CHALLENGE
+TASK BREAKDOWN - WEEK 3 (2026-07-20 to 2026-07-26)
+==========================================================
+
+Frontend foundation (Tailwind, react-router, folder structure) is already
+scaffolded in frontend/src/ (App.tsx, pages/, components/, hooks/, context/).
+Backend is still at skeleton stage: every file under backend/db/,
+backend/engine/, and backend/engine/evaluators/ is empty, and backend/.env
+has no API keys yet. This week's split reflects that gap.
+
+----------------------------------------------------------------------
+1. LE BAO NGOC - Project Lead & Prompt Engineer
+----------------------------------------------------------------------
+Primary focus this week: NeuroCorp lore + defense system prompts, so the
+backend track has something real to wire the LLM router against.
+
+[ ] Write the Level 1 (The Lobby) system prompt
+      File: backend/engine/prompts/level_1_lobby.py
+      - NeuroCorp persona/lore for the SLM level
+      - Embed the exact leaked keyword / system tag the regex matcher
+        will look for (coordinate the literal string with backend)
+
+[ ] Write the Level 2 (The Lab) system prompt
+      File: backend/engine/prompts/level_2_lab.py
+      - Persona that can be coaxed into calling a function
+      - Define, with backend, the natural-language conditions that should
+        trigger the open_vault() tool call
+
+[ ] Write the Level 3 (The Core) system prompt
+      File: backend/engine/prompts/level_3_core.py
+      - SOTA guardian persona (DeepSeek-V4) defending the "classified"
+        secret
+      - Draft the separate AI Judge evaluation prompt (used in
+        backend/engine/evaluators/llm_judge.py) that returns
+        {"is_jailbroken": true/false} - can be a v1 draft, Judge
+        pipeline itself is scheduled for Week 7-8
+
+[ ] Define the open_vault() function-calling schema with backend
+      File: backend/engine/tools.py
+      - Name, description, and parameters of the tool the Level 2 model
+        can call
+
+[ ] Frontend: Chat Console & Narrative track (see section on frontend
+    tracks below) - his lore work feeds directly into the level intro/
+    briefing screens
+
+----------------------------------------------------------------------
+2. NGUYEN BAO THIEN PHUC - Backend & AI Integration Specialist
+----------------------------------------------------------------------
+Primary focus this week: close the Week 2-3 backend gap. This is the
+critical path for Week 5-6 (Level 1/2 implementation) to have anything
+real to build on.
+
+[ ] Load API keys via settings
+      File: backend/core/config.py (currently empty)
+      - pydantic-settings class reading GROQ_API_KEY, OPENAI_API_KEY,
+        DEEPSEEK_API_KEY from backend/.env
+      - Never commit real keys; confirm .env is in .gitignore
+
+[ ] Define domain models
+      File: backend/db/models.py (currently empty)
+      - PlayerSession, PromptLog, LevelConfig, VerificationResult
+        (see proposal section 1.1 for exact fields)
+
+[ ] Database client
+      File: backend/db/client.py (currently empty)
+      - Supabase/Postgres connection, once My An hands over the
+        connection string
+
+[ ] Repository layer
+      File: backend/db/repositories.py (currently empty)
+      - CRUD functions matching the CRUD matrix in proposal section 6.1
+        (Create/Read PlayerSession, Create/Read PromptLog, etc.)
+
+[ ] Implement session start endpoint
+      File: backend/api/routers/session.py (currently empty)
+      - POST /api/v1/game/start-game
+      - Generate session_token, init attempts_used=0, start 15-min timer,
+        persist PlayerSession, return token to frontend (Task 1 in
+        proposal section 2)
+
+[ ] LLM routing
+      File: backend/engine/llm_router.py (currently empty)
+      - Route by level_id: Groq (Gemma 2B, Level 1), OpenAI (GPT-4o mini,
+        Level 2, with tool schema), DeepSeek (DeepSeek-V4, Level 3)
+
+[ ] Win-condition evaluators
+      Files: backend/engine/evaluators/regex_matcher.py,
+             backend/engine/evaluators/tool_verifier.py
+      - Level 1: exact-match / regex scan for the leaked keyword from
+        system prompt
+      - Level 2: inspect response for tool_calls / open_vault trigger
+      - (llm_judge.py for Level 3 can wait until Week 7-8 per schedule)
+
+[ ] Wire the real submit-prompt flow
+      File: backend/api/routers/game.py
+      - Replace the hardcoded dummy response with: retrieve system
+        prompt for level_id -> call llm_router -> run the matching
+        evaluator -> return real GameResponse
+
+----------------------------------------------------------------------
+3. LUONG MY AN - DevOps Engineer & QA Lead
+----------------------------------------------------------------------
+Primary focus this week: unblock both frontend and backend, plus her
+frontend track.
+
+[ ] Provision the database
+      - Set up the actual Supabase/Postgres instance
+      - Hand the connection string to Phuc for db/client.py
+
+[ ] Get real LLM API keys issued
+      - Groq, OpenAI, DeepSeek accounts / API keys
+      - Load into backend/.env (local only, never commit)
+
+[ ] Write a local-dev README
+      - How to run `uvicorn` backend locally and `npm run dev` frontend
+        together, so all 4 people can test against the real backend
+        once session.py exists (today they're on the frontend mock)
+
+[ ] Frontend: Timers, Feedback States & Deploy track (see below)
+      - Countdown timer + attempt counter UI (visual only, always
+        re-synced from session_state per QA2 - server is source of truth)
+      - Victory/defeat modal + animation
+      - Loading / error / "Signal Lost" states
+      - Vercel deploy config + env var wiring for API_BASE_URL
+
+----------------------------------------------------------------------
+4. PHAN NGUYEN NHU KHANH - Frontend Developer & QA
+----------------------------------------------------------------------
+Primary focus this week: her frontend track, on schedule with the
+Week 3-4 milestone.
+
+[ ] Cyberpunk design system polish
+      File: frontend/src/index.css (@theme tokens already stubbed)
+      - Extend neon-cyan / neon-magenta / cyber-bg palette as needed
+      - Typography scale, spacing, glow/border effects
+
+[ ] Level Selection Hub page
+      File: frontend/src/pages/HubPage.tsx (currently a basic stub)
+      - Locked / unlocked / completed states per level card
+      - Responsive layout for mobile + desktop
+
+[ ] App shell
+      - Header / nav / footer wrapper components in
+        frontend/src/components/
+
+[ ] Onboarding overlay
+      - Short instructional overlay explaining AI red-teaming rules to
+        new players (per Week 9 polish milestone, can start the
+        component now)
+
+----------------------------------------------------------------------
+FRONTEND-ONLY TRACKS (reference - already assigned above per person)
+----------------------------------------------------------------------
+Since the team is prioritizing frontend progress without waiting on the
+real backend, track 3 below uses a mock API layer instead of live calls.
+
+Track 1 - Shell & Level Hub .......... Khanh
+Track 2 - Chat Console & Narrative ... Ngoc
+Track 3 - Mock API & State ........... whoever is most comfortable with
+                                        TypeScript/state management
+                                        (not backend-dependent anymore)
+      [ ] frontend/src/services/mockApi.ts
+            - startSession(): fake session_token via crypto.randomUUID()
+            - submitUserPrompt(): randomized is_win, canned ai_response,
+              simulated latency via setTimeout
+            - Same GameResponse/PromptRequest shapes as
+              frontend/src/types/game.ts so swapping to the real backend
+              later is a one-line change
+      [ ] zustand store in frontend/src/context/ for session token,
+          level id, attempts, chat history
+Track 4 - Timers, Feedback & Deploy .. My An
+
+----------------------------------------------------------------------
+RISK NOTE
+----------------------------------------------------------------------
+Backend is currently ~0% against its own Week 2-3 milestone (every
+engine/db file is empty). If it's still at 0% by end of this week,
+Week 5-6 (Level 1/2 implementation) has nothing real to build on.
+Decide explicitly this week: compress backend scope (skip Judge polish,
+ship minimal regex + tool-call checks only) or shift the whole
+milestone schedule back ~1 week.
