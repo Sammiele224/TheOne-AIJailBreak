@@ -10,6 +10,12 @@ TheOne AI JailBreak is a cyberpunk-style AI red-team game that challenges player
 - Session and prompt logging flow for future persistence and analytics
 - Production-oriented Docker and deployment scaffolding
 
+## Documentation
+
+- [KNOWLEDGE_BASE.md](KNOWLEDGE_BASE.md) — how the system actually works: level/evaluator behavior, request flow, file map, and gotchas
+- [CHANGELOG.md](CHANGELOG.md) — branch reconciliation and the gameplay bug fixes behind it
+- [API_DOCUMENTATION.md](API_DOCUMENTATION.md) · [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md) · [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+
 ## Architecture overview
 
 ```mermaid
