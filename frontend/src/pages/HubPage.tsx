@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { ArrowRight, Brain, CheckCircle2, Lock, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Layout from '../components/Layout'
+import OnboardingModal from '../components/OnboardingModal'
 import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
@@ -16,16 +18,25 @@ function HubPage() {
   const completedLevels = useGameStore((state) => state.completedLevels)
   const resetProgress = useGameStore((state) => state.resetProgress)
 
+  const [showBriefing, setShowBriefing] = useState(false)
+
   const clearedCount = completedLevels.length
   const completionPercent = Math.round((clearedCount / TOTAL_LEVELS) * 100)
   const nextLevel = LEVELS.find((level) => !completedLevels.includes(level.id))
+  // Everything cleared? Re-brief the last level rather than showing nothing.
+  const briefingLevel = nextLevel?.id ?? TOTAL_LEVELS
 
   return (
     <Layout
       title="NeuroCorp Mission Control"
       subtitle="A polished cyberpunk experience for red-team prompt scenarios, mission briefings, and secure operator feedback."
-      action={<Button size="sm"><Sparkles size={16} className="mr-2" /> Launch briefing</Button>}
+      action={
+        <Button size="sm" onClick={() => setShowBriefing(true)}>
+          <Sparkles size={16} className="mr-2" /> Launch briefing
+        </Button>
+      }
     >
+      <OnboardingModal isOpen={showBriefing} onClose={() => setShowBriefing(false)} levelId={briefingLevel} />
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card className="p-6 sm:p-8">
           <div className="flex flex-wrap items-center gap-2">

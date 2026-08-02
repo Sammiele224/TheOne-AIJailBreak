@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { AudioLines, Command, MoonStar, Settings2, ShieldCheck, Sparkles } from 'lucide-react'
+import { Command, ShieldCheck, Sparkles } from 'lucide-react'
 import Button from './ui/Button'
 import Badge from './ui/Badge'
+import CommandPalette from './CommandPalette'
 
 type LayoutProps = {
   children: React.ReactNode
@@ -11,8 +13,23 @@ type LayoutProps = {
 }
 
 function Layout({ children, title, subtitle, action }: LayoutProps) {
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setIsPaletteOpen((open) => !open)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(78,246,255,0.16),transparent_25%),linear-gradient(135deg,#06070d_0%,#090c15_100%)] text-white">
+      <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
         <header className="mb-4 rounded-[28px] border border-cyber-border/80 bg-cyber-panel/70 px-4 py-3 shadow-[0_0_30px_rgba(78,246,255,0.08)] backdrop-blur-xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -30,18 +47,21 @@ function Layout({ children, title, subtitle, action }: LayoutProps) {
                 Hub
               </NavLink>
               <NavLink to="/level/1" className={({ isActive }) => `rounded-full px-3 py-2 transition ${isActive ? 'bg-white/10 text-white' : 'hover:bg-white/5 hover:text-white'}`}>
-                Lab
+                Console
               </NavLink>
               <NavLink to="/result" className={({ isActive }) => `rounded-full px-3 py-2 transition ${isActive ? 'bg-white/10 text-white' : 'hover:bg-white/5 hover:text-white'}`}>
                 Results
               </NavLink>
             </nav>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="rounded-full">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full"
+                onClick={() => setIsPaletteOpen(true)}
+                aria-label="Open command palette"
+              >
                 <Command size={16} className="mr-2" /> Command
-              </Button>
-              <Button variant="secondary" size="sm" className="rounded-full">
-                <MoonStar size={16} />
               </Button>
             </div>
           </div>
@@ -68,9 +88,10 @@ function Layout({ children, title, subtitle, action }: LayoutProps) {
             <Sparkles size={16} className="text-neon-cyan" />
             <span>NeuroCorp Relay • Secure prompt experiments with calm precision.</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1"><AudioLines size={14} /> Audio On</span>
-            <span className="flex items-center gap-1"><Settings2 size={14} /> Live Settings</span>
+          <div className="flex items-center gap-2">
+            <span>Press</span>
+            <kbd className="rounded border border-cyber-border px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
+            <span>to jump between levels</span>
           </div>
         </footer>
       </div>

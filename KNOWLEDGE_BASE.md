@@ -197,7 +197,7 @@ cannot skip the gate.
 | `services/api.ts` | `startSession()` / `submitUserPrompt()`; sends `X-API-Key` when `VITE_API_KEY` is set |
 | `services/mockApi.ts` | Standalone mock — **not wired into the pages**; `api.ts` is what runs |
 | `components/ui/` | `Button` (supports `asChild`), `Card`, `Badge` |
-| `components/` | `Layout`, `LoadingState`, `StatusCard`, `OnboardingModal`, `ErrorBoundary` |
+| `components/` | `Layout`, `LoadingState`, `StatusCard`, `OnboardingModal` (dismissable via X / Esc / backdrop), `CommandPalette` (⌘K), `ErrorBoundary` |
 | `types/game.ts` | Mirrors `backend/schemas/response.py` — **keep the two in sync** |
 | `index.css` | Tailwind v4 tokens in an `@theme` block (required for `bg-cyber-panel` etc. to generate) |
 

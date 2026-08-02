@@ -1,5 +1,60 @@
 # Changelog
 
+## 2026-08-03 — Dismissable briefing + working header controls
+
+### The mission briefing could not be dismissed except by one button
+
+`OnboardingModal` opens automatically on every level and rendered a full-screen
+`fixed inset-0 z-50` overlay whose only exit was the "Enter the terminal" button —
+no close control, no `Esc`, no backdrop click. Anyone who wanted to read the
+briefing and then use the header nav was stuck.
+
+- Added an `X` close control, `Esc` handling, and click-outside-to-dismiss.
+- Added `role="dialog"` / `aria-modal` / `aria-labelledby`, an `aria-label` on the
+  close control, and autofocus on the primary action.
+- The overlay now locks body scroll while open and restores the previous value on
+  close, so the page behind it no longer scrolls under the modal.
+- The primary action carries an "or press Esc" hint so the shortcut is discoverable.
+
+### Four buttons did nothing
+
+Each was a styled `<Button>` with no `onClick` and no `asChild` link, so clicking
+it was a no-op:
+
+| Control | Was | Now |
+|---|---|---|
+| "Launch briefing" (hub) | dead | opens the briefing for the next uncleared level |
+| "Command" (header) | dead | opens a real command palette |
+| Theme toggle (header) | dead | **removed** — see below |
+| "Contact ops" (404) | dead | replaced with "Start Level 1" |
+
+The header advertised `⌘ Command`, so that affordance is now real: a searchable
+palette (`CommandPalette.tsx`) that jumps to the hub, any level, or the mission
+report. It opens from the button or `⌘K`/`Ctrl+K`, supports arrow-key navigation
+and `Enter`, closes on `Esc` or backdrop click, and — importantly — reflects the
+progression: locked levels are shown disabled with "Clear Level N first" rather
+than offering a route past the gate.
+
+The theme toggle was **removed rather than implemented**. The design is committed
+to dark (`color-scheme: dark` plus a neon-on-black palette); a light theme would
+mean a second full palette, and shipping a toggle that does nothing is worse than
+not having one. The same reasoning applies to the footer's "Audio On" / "Live
+Settings", which were static text implying controls that never existed — replaced
+with the `⌘K` hint.
+
+Also relabelled the header's "Lab" nav item to "Console": it points at
+`/level/1`, which is The Lobby, not The Lab (Level 2).
+
+### Verification
+
+14 browser-driven control checks, all passing: briefing opens from the hub button;
+closes via X, `Esc`, and backdrop; palette opens from both the button and `⌘K`;
+palette marks locked levels; palette navigates by click and by arrow+`Enter`;
+header nav works; 404 buttons work. Zero console errors. The full level-progression
+run and all 17 backend tests still pass.
+
+---
+
 ## 2026-08-03 — Level 3 judge pipeline + level progression
 
 Closes the outstanding gameplay work from [TASKS.txt](TASKS.txt). Database

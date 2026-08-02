@@ -12,7 +12,9 @@ function NotFoundPage() {
           <Button asChild>
             <Link to="/">Return home</Link>
           </Button>
-          <Button variant="secondary">Contact ops</Button>
+          <Button variant="secondary" asChild>
+            <Link to="/level/1">Start Level 1</Link>
+          </Button>
         </div>
       </div>
     </div>
