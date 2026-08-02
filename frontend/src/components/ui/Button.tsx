@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { cloneElement, forwardRef, isValidElement } from 'react'
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'ghost'
@@ -19,16 +19,23 @@ const sizes = {
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className = '', variant = 'primary', size = 'md', type = 'button', ...props },
+  { className = '', variant = 'primary', size = 'md', type = 'button', asChild = false, children, ...props },
   ref,
 ) {
+  const buttonClasses = `inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${classes[variant]} ${sizes[size]} ${className}`
+
+  // Style the child element directly instead of nesting it inside a <button>,
+  // which would be invalid markup for an interactive child such as a <Link>.
+  if (asChild && isValidElement<{ className?: string }>(children)) {
+    return cloneElement(children, {
+      className: `${buttonClasses} ${children.props.className ?? ''}`.trim(),
+    })
+  }
+
   return (
-    <button
-      ref={ref}
-      type={type}
-      className={`inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${classes[variant]} ${sizes[size]} ${className}`}
-      {...props}
-    />
+    <button ref={ref} type={type} className={buttonClasses} {...props}>
+      {children}
+    </button>
   )
 })
 
