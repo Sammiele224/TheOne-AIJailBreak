@@ -7,8 +7,10 @@ class Settings(BaseSettings):
     groq_api_key: str | None = None
     openai_api_key: str | None = None
     deepseek_api_key: str | None = None
+    anthropic_api_key: str | None = None
 
     database_url: str | None = None
+    api_key: str | None = None
 
 
 settings = Settings()
