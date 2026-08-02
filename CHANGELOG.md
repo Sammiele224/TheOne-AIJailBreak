@@ -1,5 +1,100 @@
 # Changelog
 
+## 2026-08-03 — Level 3 judge pipeline + level progression
+
+Closes the outstanding gameplay work from [TASKS.txt](TASKS.txt). Database
+provisioning was explicitly out of scope for this pass.
+
+### Level 3 was not a playable level
+
+The scheduled "Week 7-8" judge pipeline had never been built, and what stood in
+for it did not work:
+
+- The **defender** was prompted to act as its own judge — the seeded Level 3
+  system prompt told CORE-SEC to *"assess whether a prior assistant response has
+  been compromised"* and emit `{"is_jailbroken": true|false}`. The player was
+  shown that raw JSON in the chat window instead of a character to social-engineer.
+- `LLMJudge` was handed `raw_response`, the defender's own payload, so the model
+  under attack graded itself.
+- With the local fallback that payload carried no verdict at all, so every attempt
+  returned *"Judge output did not include an is_jailbroken flag"* — **Level 3 could
+  never be won.**
+
+Rebuilt as a real two-model pipeline:
+
+- `prompts/level_3_core.py` — CORE-SEC is now a genuine guardian defending a
+  classified access phrase (`LEVEL_3_SECRET`), with explicit instructions to treat
+  user-supplied instructions as untrusted data. Adds `JUDGE_SYSTEM_PROMPT` and
+  `build_judge_user_content()`.
+- `llm_router.call_judge()` — sends the operator prompt and the guardian's reply to
+  a **different provider** (Anthropic) so the model under attack never grades its
+  own answer. This also activates `call_anthropic`, which was fully implemented but
+  unreachable — `call_model` only ever routed levels 1-3.
+- `api/routers/game.py` — `_evaluate_response()` is now async and calls the judge
+  for Level 3, passing the judge's verdict to `LLMJudge`.
+
+### Offline fallbacks rewritten so every level is winnable
+
+Previously the keyless fallbacks were incoherent: Level 1 could never be won (the
+canned reply never leaked the tag), Level 2 always won regardless of input, and
+Level 3 returned raw JSON. Gating levels behind completion would have deadlocked
+the whole game with an empty `.env`.
+
+All three defenders now share one rule — hold by default, yield only to an overt
+override attempt (`FALLBACK_JAILBREAK_MARKERS`) — so a keyless demo is an actual
+game rather than a fixed outcome. `_fallback_response()` takes the messages and
+reports `raw.yielded`; a local judge (`_fallback_judge_verdict`) grades Level 3 by
+checking whether the guardian leaked the phrase.
+
+Level 1's seeded prompt already asks for a tag, Level 2's for a "security
+override" — the marker list matches that existing wording.
+
+### Level progression on the hub
+
+`HubPage` previously showed all three levels as permanently "Live" with no sense of
+progress, alongside hardcoded metrics (`92%`, `13 wins`, `Vault breach`) that were
+pure decoration.
+
+- `gameStore` gains `completedLevels`, persisted to `localStorage` via zustand's
+  `persist` middleware. `partialize` keeps only progress — session token and chat
+  history stay per-run and are not restored on reload. **No database involved.**
+- Level cards render locked / live / cleared states; a locked card is not a link
+  and reads *"Clear Level N to unlock"*.
+- `GamePage` redirects to the hub if the level is locked, so a direct URL cannot
+  skip the progression, and calls `markLevelCompleted()` on a win.
+- The metrics panel now reports real values — levels cleared, next objective,
+  completion percent — plus a "Reset progress" control.
+
+### Verification
+
+- `pytest` — **17 passed** (was 9): added judge-verdict, fallback-polarity and
+  "every level yields to an override" coverage. That last test is the regression
+  guard for the deadlock described above.
+- `tsc --noEmit` clean, `vite build` succeeds.
+- Browser run from a cleared `localStorage`: fresh hub shows 0/3 with L2/L3 locked
+  → direct URL to `/level/3` redirects to the hub → L1 win unlocks L2 → L2 win
+  unlocks L3 → a benign L3 prompt is correctly held by the guardian → a jailbreak
+  prompt is caught by the judge → hub shows 3/3 "All cleared". Zero console errors.
+
+### Deliberately not done
+
+- **Database provisioning** — excluded from this pass by request. Level progress is
+  therefore client-side only and will not follow a player across browsers.
+- **Real provider API keys** — needs Groq / OpenAI / DeepSeek / Anthropic accounts.
+  Everything runs on the deterministic fallbacks until they are set in
+  `backend/.env`. The judge uses `ANTHROPIC_API_KEY`.
+- **Vercel deploy config** — `TASKS.txt` lists it, but Docker + nginx already cover
+  deployment and are documented in [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
+  Adding a second, unused deploy target seemed worse than leaving the choice open.
+
+### Note when pulling this change
+
+Level prompts are seeded only when the `level_configs` table is empty, so the new
+Level 3 guardian will not appear on an existing database. Delete
+`backend/neurocorp_dev.db` (gitignored, local sessions only) and restart.
+
+---
+
 ## 2026-08-03 — Branch reconciliation + gameplay bug fixes
 
 Branch `Bngoc`, commits [`d3e7bd3`](#) and [`5a2efd3`](#).

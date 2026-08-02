@@ -90,12 +90,14 @@ def _build_messages(system_prompt: str, user_prompt: str) -> list[dict[str, str]
     ]
 
 
-def _evaluate_response(
+async def _evaluate_response(
     *,
     level_number: int,
     system_prompt: str,
+    user_prompt: str,
     model_response: str,
     raw_response: Any,
+    router_client: LLMRouter,
 ) -> dict[str, bool | str]:
     """Run the level-specific evaluator."""
 
@@ -106,7 +108,12 @@ def _evaluate_response(
         return ToolVerifier(response=raw_response, content_fallback=model_response).evaluate()
 
     if level_number == 3:
-        return LLMJudge(response=raw_response).evaluate()
+        # The guardian never grades itself: a second model reviews its reply.
+        judge_result = await router_client.call_judge(
+            user_prompt=user_prompt,
+            guardian_response=model_response,
+        )
+        return LLMJudge(response=judge_result).evaluate()
 
     return {
         "passed": False,
@@ -171,11 +178,13 @@ async def submit_prompt(
         if not model_response_text.strip():
             model_response_text = _serialize_raw_response(llm_result.get("raw"))
 
-        evaluation = _evaluate_response(
+        evaluation = await _evaluate_response(
             level_number=active_level.level_number,
             system_prompt=active_level.system_prompt,
+            user_prompt=payload.user_prompt,
             model_response=model_response_text,
             raw_response=llm_result.get("raw"),
+            router_client=router_client,
         )
 
         expected_attempt_counter = session.attempts_used + 1

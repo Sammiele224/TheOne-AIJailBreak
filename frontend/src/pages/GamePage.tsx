@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { AlertCircle, Clock3, SendHorizonal } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import Layout from '../components/Layout'
 import LoadingState from '../components/LoadingState'
 import OnboardingModal from '../components/OnboardingModal'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
-import { useGameStore } from '../context/gameStore'
+import { isLevelUnlocked, useGameStore } from '../context/gameStore'
 import { startSession, submitUserPrompt } from '../services/api'
 
 function GamePage() {
   const { levelId } = useParams<{ levelId: string }>()
   const navigate = useNavigate()
-  const { sessionToken, levelId: storeLevelId, attempts, chatHistory, setSessionToken, setLevelId, setAttempts, addChatMessage, reset } = useGameStore()
+  const { sessionToken, levelId: storeLevelId, attempts, chatHistory, setSessionToken, setLevelId, setAttempts, addChatMessage, markLevelCompleted, completedLevels, reset } = useGameStore()
   const [prompt, setPrompt] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -100,6 +100,10 @@ function GamePage() {
       setAttempts(payload.attempt_counter)
       setToast(response.data.verification.is_win ? 'Mission succeeded.' : 'The guard remained intact. Try again.')
 
+      if (response.data.verification.is_win) {
+        markLevelCompleted(parsedLevelId)
+      }
+
       if (response.data.verification.is_win || response.data.session_state.is_game_over) {
         navigate('/result', { state: { levelId: parsedLevelId, result: response.data.verification.is_win ? 'victory' : 'defeat' } })
       }
@@ -110,6 +114,11 @@ function GamePage() {
       setPrompt('')
       setIsLoading(false)
     }
+  }
+
+  // Keep the hub's lock meaningful: a direct URL must not skip the progression.
+  if (!isLevelUnlocked(parsedLevelId, completedLevels)) {
+    return <Navigate to="/" replace />
   }
 
   return (

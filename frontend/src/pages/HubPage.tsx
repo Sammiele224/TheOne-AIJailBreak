@@ -1,17 +1,25 @@
-import { ArrowRight, Brain, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
+import { ArrowRight, Brain, CheckCircle2, Lock, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
+import { TOTAL_LEVELS, isLevelUnlocked, useGameStore } from '../context/gameStore'
 
 const LEVELS = [
   { id: 1, name: 'The Lobby', description: 'Leak the hidden tag from the guard.', accent: 'cyan' as const },
   { id: 2, name: 'The Lab', description: 'Persuade the model to call the vault tool.', accent: 'magenta' as const },
-  { id: 3, name: 'The Core', description: 'Defend against a judge-led jailbreak probe.', accent: 'danger' as const },
+  { id: 3, name: 'The Core', description: 'Outwit the guardian under an AI judge.', accent: 'danger' as const },
 ]
 
 function HubPage() {
+  const completedLevels = useGameStore((state) => state.completedLevels)
+  const resetProgress = useGameStore((state) => state.resetProgress)
+
+  const clearedCount = completedLevels.length
+  const completionPercent = Math.round((clearedCount / TOTAL_LEVELS) * 100)
+  const nextLevel = LEVELS.find((level) => !completedLevels.includes(level.id))
+
   return (
     <Layout
       title="NeuroCorp Mission Control"
@@ -54,35 +62,95 @@ function HubPage() {
           </div>
           <div className="mt-6 space-y-4">
             <div className="rounded-2xl border border-cyber-border/70 bg-white/5 p-4">
-              <div className="flex items-center justify-between text-sm"><span className="text-text-muted">Success rate</span><span className="font-semibold text-white">92%</span></div>
-              <div className="mt-3 h-2 rounded-full bg-white/10"><div className="h-2 w-[92%] rounded-full bg-linear-to-r from-neon-cyan to-neon-magenta" /></div>
+              <div className="flex items-center justify-between text-sm"><span className="text-text-muted">Levels cleared</span><span className="font-semibold text-white">{clearedCount}/{TOTAL_LEVELS}</span></div>
+              <div className="mt-3 h-2 rounded-full bg-white/10">
+                <div
+                  className="h-2 rounded-full bg-linear-to-r from-neon-cyan to-neon-magenta transition-all duration-500"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
             </div>
             <div className="rounded-2xl border border-cyber-border/70 bg-white/5 p-4">
-              <div className="flex items-center justify-between text-sm"><span className="text-text-muted">Last mission</span><span className="font-semibold text-white">Vault breach</span></div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-muted">Next objective</span>
+                <span className="font-semibold text-white">{nextLevel ? nextLevel.name : 'All cleared'}</span>
+              </div>
             </div>
             <div className="rounded-2xl border border-cyber-border/70 bg-white/5 p-4">
-              <div className="flex items-center justify-between text-sm"><span className="text-text-muted">Best streak</span><span className="font-semibold text-white">13 wins</span></div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-muted">Progress</span>
+                <span className="font-semibold text-white">{completionPercent}%</span>
+              </div>
+              {clearedCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={resetProgress}
+                  className="mt-3 inline-flex items-center text-xs text-text-muted transition-colors hover:text-neon-cyan"
+                >
+                  <RotateCcw size={13} className="mr-1.5" /> Reset progress
+                </button>
+              ) : null}
             </div>
           </div>
         </Card>
       </div>
 
       <div className="mt-5 grid gap-4 md:grid-cols-3">
-        {LEVELS.map((level) => (
-          <Link key={level.id} to={`/level/${level.id}`} className="group block">
-            <Card className="h-full p-6 transition-all duration-200 group-hover:-translate-y-1 group-hover:border-neon-cyan/60">
+        {LEVELS.map((level) => {
+          const isCompleted = completedLevels.includes(level.id)
+          const isUnlocked = isLevelUnlocked(level.id, completedLevels)
+
+          const card = (
+            <Card
+              className={`h-full p-6 transition-all duration-200 ${
+                isUnlocked
+                  ? 'group-hover:-translate-y-1 group-hover:border-neon-cyan/60'
+                  : 'opacity-60'
+              } ${isCompleted ? 'border-neon-cyan/40' : ''}`}
+            >
               <div className="mb-4 flex items-center justify-between">
                 <Badge tone={level.accent}>Level {level.id}</Badge>
-                <span className="text-[11px] uppercase tracking-[0.3em] text-text-muted">Live</span>
+                {isCompleted ? (
+                  <span className="flex items-center text-[11px] uppercase tracking-[0.3em] text-neon-cyan">
+                    <CheckCircle2 size={13} className="mr-1.5" /> Cleared
+                  </span>
+                ) : isUnlocked ? (
+                  <span className="text-[11px] uppercase tracking-[0.3em] text-text-muted">Live</span>
+                ) : (
+                  <span className="flex items-center text-[11px] uppercase tracking-[0.3em] text-text-muted">
+                    <Lock size={13} className="mr-1.5" /> Locked
+                  </span>
+                )}
               </div>
               <h3 className="text-xl font-semibold">{level.name}</h3>
               <p className="mt-3 text-sm leading-7 text-text-muted">{level.description}</p>
-              <div className="mt-6 flex items-center text-sm font-medium text-neon-cyan">
-                Enter mission <ArrowRight size={16} className="ml-2" />
+              <div
+                className={`mt-6 flex items-center text-sm font-medium ${
+                  isUnlocked ? 'text-neon-cyan' : 'text-text-muted'
+                }`}
+              >
+                {isUnlocked ? (
+                  <>
+                    {isCompleted ? 'Replay mission' : 'Enter mission'}
+                    <ArrowRight size={16} className="ml-2" />
+                  </>
+                ) : (
+                  `Clear Level ${level.id - 1} to unlock`
+                )}
               </div>
             </Card>
-          </Link>
-        ))}
+          )
+
+          return isUnlocked ? (
+            <Link key={level.id} to={`/level/${level.id}`} className="group block">
+              {card}
+            </Link>
+          ) : (
+            <div key={level.id} className="cursor-not-allowed" aria-disabled="true">
+              {card}
+            </div>
+          )
+        })}
       </div>
     </Layout>
   )

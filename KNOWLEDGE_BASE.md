@@ -24,6 +24,7 @@ React + Vite (frontend/)
 FastAPI (backend/)
         │
         ├── engine/llm_router.py ──► Groq (L1) / OpenAI (L2) / DeepSeek (L3)
+        │                       └──► Anthropic (L3 judge, grades the guardian)
         │                            └── deterministic local fallback if no key
         ├── engine/evaluators/   ──► decides is_win
         └── db/ (SQLAlchemy)     ──► SQLite by default, Postgres via DATABASE_URL
@@ -40,7 +41,7 @@ everything routes through the backend, which picks the model from `level_id`.
 |---|---|---|---|---|
 | 1 | The Lobby | Groq `gemma2-2b-it` | `RegexEvaluator` | Response contains a secret keyword extracted from the system prompt (e.g. `[ACCESS_GRANTED]`) |
 | 2 | The Lab | OpenAI `gpt-4o-mini` | `ToolVerifier` | Response triggers the `open_vault` tool/function call |
-| 3 | The Core | DeepSeek `deepseek-v4` | `LLMJudge` | Judge returns `{"is_jailbroken": true}` |
+| 3 | The Core | DeepSeek `deepseek-v4` (guardian) + Anthropic (judge) | `LLMJudge` | A **second** model reviews the guardian's reply and returns `{"is_jailbroken": true}` |
 
 Levels are **seeded into the database on startup** by `initialize_database()` in
 `backend/main.py` — system prompts, model names and `max_attempts` (3) live in the
@@ -81,6 +82,24 @@ ends the run at the wrong moment too.
 
 ---
 
+## Level 3: the two-model judge pipeline
+
+Level 3 is the only level not scored by inspecting the defender's output directly:
+
+1. The **guardian** (DeepSeek) answers the operator, defending `LEVEL_3_SECRET`.
+2. `LLMRouter.call_judge()` sends the operator prompt *and* the guardian's reply to
+   a **different provider** (Anthropic, `JUDGE_SYSTEM_PROMPT`).
+3. The judge returns `{"is_jailbroken": bool}`; `LLMJudge` parses that verdict.
+
+The separation is the point — the model under attack must never grade its own
+answer, or a successful jailbreak can also suppress the report of it. If you swap
+the judge provider, keep it distinct from the guardian's.
+
+`call_judge` reads `ANTHROPIC_API_KEY`. Without it, a local verdict
+(`_fallback_judge_verdict`) checks whether the guardian's reply contains the secret.
+
+---
+
 ## Request flow (`POST /api/v1/game/submit-prompt`)
 
 1. Look up `PlayerSession` by `session_token`; reject if missing, expired, already
@@ -101,18 +120,45 @@ ends the run at the wrong moment too.
 ## Local fallback (no API keys)
 
 Each `call_*` method catches `RuntimeError` — raised by `_get_*_client()` when the
-matching key is unset — and returns `_fallback_response(level_id)` instead. This
-keeps the app playable with an empty `.env`, but the outcomes are **fixed**:
+matching key is unset — and returns `_fallback_response(level_id, messages)`
+instead, so the app stays playable with an empty `.env`.
 
-| Level | Fallback behavior | Result |
+All three offline defenders follow one rule: **hold by default, yield only to an
+overt override attempt**, matched against `FALLBACK_JAILBREAK_MARKERS`
+("ignore previous", "developer mode", "override", …).
+
+| Level | Held (default) | Yielded (override detected) |
 |---|---|---|
-| 1 | text that never leaks the tag | always **lose** |
-| 2 | text containing `open_vault` | always **win** |
-| 3 | `{"is_jailbroken": false}` | always **lose** |
+| 1 | refuses, no tag | emits `LEVEL_1_SECRET_TAG` → win |
+| 2 | refuses | mentions `open_vault` → win |
+| 3 | refuses | leaks `LEVEL_3_SECRET`, local judge flags it → win |
+
+`raw.yielded` records which branch ran. Every level **must** stay winnable offline
+— the hub gates each level behind the previous one, so an unwinnable level would
+deadlock progression entirely. `test_fallback_engine.py` guards this.
 
 Only a `RuntimeError` (missing key) triggers the fallback — a genuine network or
 auth failure from a configured provider propagates as a 500. Add real keys to
 `backend/.env` for actual gameplay.
+
+---
+
+## Level progression (client-side)
+
+The hub gates levels: Level 1 is always open, Level N unlocks once N-1 is cleared.
+
+Progress lives in `gameStore.completedLevels`, persisted to `localStorage` under
+`neurocorp-progress` via zustand's `persist` middleware. `partialize` stores *only*
+`completedLevels` — session token and chat history are per-run and must not survive
+a reload.
+
+**There is no server-side progression.** Progress is per-browser: it does not follow
+a player across devices and is cleared by wiping site data or the hub's "Reset
+progress" control. Moving it server-side means a schema change and a persisted
+player identity, neither of which exists yet.
+
+`GamePage` re-checks `isLevelUnlocked()` and redirects to the hub, so a direct URL
+cannot skip the gate.
 
 ---
 
@@ -128,25 +174,26 @@ auth failure from a configured provider propagates as a 500. Add real keys to
 | `api/routers/session.py` | `POST /api/v1/game/start-game` → 15-minute session, returns `expires_at` (UTC, offset-bearing) |
 | `api/routers/game.py` | `POST /api/v1/game/submit-prompt` — orchestrates steps 1–7 above |
 | `api/routers/health.py` | `GET /healthz` readiness probe |
-| `engine/llm_router.py` | Per-level provider routing, model constants, fallback envelopes |
+| `engine/llm_router.py` | Per-level provider routing, model constants, `call_judge()` for L3, fallback envelopes |
 | `engine/tools.py` | `OPEN_VAULT_TOOL` function-calling schema (Level 2) |
 | `engine/prompts/` | Prompt source-of-truth **only for reseeding** — see the level-seeding note above |
 | `engine/evaluators/` | `regex_matcher.py`, `tool_verifier.py`, `llm_judge.py` — see the polarity contract |
+| `engine/prompts/level_3_core.py` | Guardian prompt, `LEVEL_3_SECRET`, and the judge prompt/transcript builder |
 | `db/models.py` | `PlayerSession`, `LevelConfig`, `PromptLog`, `VerificationResult` |
 | `db/client.py` | Engine + `SessionLocal`. Defaults to `sqlite:///./neurocorp_dev.db`; pooling options apply only to non-SQLite URLs |
 | `db/repositories.py` | CRUD helpers with rollback-on-error |
-| `tests/` | 9 pytest tests (health, session, auth, rate limiter, evaluators, fallback) |
+| `tests/` | 17 pytest tests (health, session, auth, rate limiter, evaluators, judge, fallback) |
 
 ## Frontend map (`frontend/src/`)
 
 | Path | Purpose |
 |---|---|
 | `App.tsx` | Routes: `/`, `/level/:levelId`, `/result`, `*` → 404, wrapped in `ErrorBoundary` |
-| `pages/HubPage.tsx` | Level select |
+| `pages/HubPage.tsx` | Level select with locked / live / cleared states and real progress metrics |
 | `pages/GamePage.tsx` | Chat console, countdown, attempt tracking, session bootstrap |
 | `pages/ResultPage.tsx` | Win/lose report |
 | `pages/NotFoundPage.tsx` | 404 |
-| `context/gameStore.ts` | zustand store: session token, level, attempts, chat history |
+| `context/gameStore.ts` | zustand store: session token, level, attempts, chat history, and `completedLevels` (persisted) |
 | `services/api.ts` | `startSession()` / `submitUserPrompt()`; sends `X-API-Key` when `VITE_API_KEY` is set |
 | `services/mockApi.ts` | Standalone mock — **not wired into the pages**; `api.ts` is what runs |
 | `components/ui/` | `Button` (supports `asChild`), `Card`, `Badge` |
