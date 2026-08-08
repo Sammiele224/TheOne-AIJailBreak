@@ -25,3 +25,15 @@ async def health_check():
         "system": "NeuroCorp Security Gateway",
         "message": "Backend engine is primed and ready for prompt injection."
     }
+
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from backend.db.client import init_db, close_db
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+    await close_db()
+
+app = FastAPI(lifespan=lifespan)
