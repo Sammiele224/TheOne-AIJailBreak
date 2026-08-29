@@ -4,6 +4,7 @@ backend/venv/
 __pycache__/
 *.pyc
 *.db
+.pytest_cache/
 
 # --- Node / Frontend ---
 node_modules/
@@ -13,5 +14,6 @@ dist/
 # --- Environment & IDE ---
 .env
 *.env
+.env.local
 .vscode/
 .DS_Store
