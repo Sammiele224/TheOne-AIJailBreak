@@ -101,5 +101,5 @@ Files touched:
   backend/engine/tools.py
   backend/engine/evaluators/llm_judge.py
 Log file:
-  PROMPT_ENGINEER_LOG.txt  (repo root)
+  docs/worklog/PROMPT_ENGINEER_LOG.txt
 ==============================================================================

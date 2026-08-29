@@ -6,9 +6,9 @@ a different mechanism: exact-string match (L1), function-call detection (L2), an
 second "judge" LLM (L3).
 
 This file is a **map of what actually exists in the repo and how it behaves**,
-including the non-obvious parts. For setup and deployment see [README.md](README.md);
+including the non-obvious parts. For setup and deployment see [README.md](../README.md);
 for the endpoint list see [API_DOCUMENTATION.md](API_DOCUMENTATION.md); for the
-history of recent fixes see [CHANGELOG.md](CHANGELOG.md).
+history of recent fixes see [CHANGELOG.md](../CHANGELOG.md).
 
 > **Status:** the full loop is implemented and verified working end-to-end
 > (hub → level → prompt → evaluation → result). Last verified 2026-08-03.
@@ -74,7 +74,7 @@ So across **all** evaluators, `passed: True` must mean *the jailbreak succeeded*
 
 `RegexEvaluator` originally used the opposite polarity (`passed` = "the AI
 defended"), which silently inverted Level 1 — a harmless prompt won instantly.
-Fixed in [CHANGELOG.md](CHANGELOG.md) §1. **If you add a Level 4 evaluator, follow
+Fixed in [CHANGELOG.md](../CHANGELOG.md) §1. **If you add a Level 4 evaluator, follow
 this polarity**, or invert it explicitly at the `_evaluate_response()` call site.
 
 `passed` also drives `is_game_over` and `session.completed`, so getting it wrong

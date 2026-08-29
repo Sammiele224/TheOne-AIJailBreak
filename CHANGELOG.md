@@ -57,7 +57,7 @@ run and all 17 backend tests still pass.
 
 ## 2026-08-03 — Level 3 judge pipeline + level progression
 
-Closes the outstanding gameplay work from [TASKS.txt](TASKS.txt). Database
+Closes the outstanding gameplay work from `TASKS.txt`. Database
 provisioning was explicitly out of scope for this pass.
 
 ### Level 3 was not a playable level
@@ -138,8 +138,8 @@ pure decoration.
 - **Real provider API keys** — needs Groq / OpenAI / DeepSeek / Anthropic accounts.
   Everything runs on the deterministic fallbacks until they are set in
   `backend/.env`. The judge uses `ANTHROPIC_API_KEY`.
-- **Vercel deploy config** — `TASKS.txt` lists it, but Docker + nginx already cover
-  deployment and are documented in [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
+- **Vercel deploy config** — `TASKS.txt` listed it, but Docker + nginx already cover
+  deployment and are documented in [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md).
   Adding a second, unused deploy target seemed worse than leaving the choice open.
 
 ### Note when pulling this change
@@ -181,8 +181,8 @@ built and served requests, but left two divergent engines in the codebase.
 
 Per decision, `master` became the source of truth. Its SQLAlchemy engine and
 full UI replaced the in-memory prototype. `Bngoc`-only working notes
-(`BACKEND_LOG.md`, `BACKEND_NEXT_STEPS.txt`, `PROMPT_ENGINEER_LOG.txt`,
-`SUPABASE_TASKS.md`) were kept.
+(`docs/worklog/BACKEND_LOG.md`, `BACKEND_NEXT_STEPS.txt`, `docs/worklog/PROMPT_ENGINEER_LOG.txt`,
+`docs/worklog/SUPABASE_TASKS.md`) were kept.
 
 The adopted code did not work end-to-end. Six defects were found by **driving the
 running app in a browser** — the backend test suite passed throughout, and
